@@ -2,3 +2,8 @@ select count(*) as cost_centers from groupscholar_cost_allocator.cost_centers;
 select count(*) as cohorts from groupscholar_cost_allocator.program_cohorts;
 select groupscholar_cost_allocator.apply_allocations_for_range('2025-08-01', '2025-10-31') as inserted_allocations;
 select count(*) as allocations from groupscholar_cost_allocator.allocations;
+select * from groupscholar_cost_allocator.recalculate_allocations_for_range('2025-08-01', '2025-10-31');
+select count(*) as allocation_gap_rows from groupscholar_cost_allocator.v_allocation_gaps;
+select count(*) as rule_coverage_rows from groupscholar_cost_allocator.v_rule_coverage;
+select count(*) as entry_status_rows from groupscholar_cost_allocator.v_entry_allocation_status;
+select count(*) as variance_rows from groupscholar_cost_allocator.v_center_allocation_variance;

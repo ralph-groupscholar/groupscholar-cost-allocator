@@ -82,6 +82,50 @@ join groupscholar_cost_allocator.cost_centers cc on cc.id = ce.center_id
 left join groupscholar_cost_allocator.allocations a on a.cost_entry_id = ce.id
 where a.id is null;
 
+create or replace view groupscholar_cost_allocator.v_allocation_gaps as
+select
+  ce.id as cost_entry_id,
+  ce.incurred_on,
+  ce.vendor,
+  ce.category,
+  ce.amount_usd,
+  cc.name as cost_center,
+  coalesce(sum(a.allocated_amount), 0) as allocated_total,
+  round(ce.amount_usd - coalesce(sum(a.allocated_amount), 0), 2) as allocation_gap,
+  case
+    when coalesce(sum(a.allocated_amount), 0) = 0 then 'unallocated'
+    when coalesce(sum(a.allocated_amount), 0) < ce.amount_usd then 'under'
+    when coalesce(sum(a.allocated_amount), 0) > ce.amount_usd then 'over'
+    else 'balanced'
+  end as status
+from groupscholar_cost_allocator.cost_entries ce
+join groupscholar_cost_allocator.cost_centers cc on cc.id = ce.center_id
+left join groupscholar_cost_allocator.allocations a on a.cost_entry_id = ce.id
+group by
+  ce.id,
+  ce.incurred_on,
+  ce.vendor,
+  ce.category,
+  ce.amount_usd,
+  cc.name;
+
+create or replace view groupscholar_cost_allocator.v_rule_coverage as
+select
+  cc.name as cost_center,
+  ar.effective_start,
+  ar.effective_end,
+  sum(ar.percent) as total_percent,
+  count(*) as rule_count,
+  case
+    when sum(ar.percent) = 100 then 'balanced'
+    when sum(ar.percent) < 100 then 'under'
+    else 'over'
+  end as status
+from groupscholar_cost_allocator.allocation_rules ar
+join groupscholar_cost_allocator.cost_centers cc on cc.id = ar.center_id
+group by cc.name, ar.effective_start, ar.effective_end
+order by ar.effective_start desc, cc.name;
+
 create or replace view groupscholar_cost_allocator.v_cohort_monthly as
 select
   pc.cohort_code,
@@ -101,6 +145,44 @@ select
   sum(ce.amount_usd) as total_spend
 from groupscholar_cost_allocator.cost_entries ce
 join groupscholar_cost_allocator.cost_centers cc on cc.id = ce.center_id
+group by cc.name, date_trunc('month', ce.incurred_on)
+order by month desc, cc.name;
+
+create or replace view groupscholar_cost_allocator.v_entry_allocation_status as
+select
+  ce.id as cost_entry_id,
+  ce.incurred_on,
+  cc.name as cost_center,
+  ce.vendor,
+  ce.category,
+  ce.amount_usd,
+  coalesce(sum(a.allocated_amount), 0) as allocated_total,
+  case
+    when ce.amount_usd = 0 then 0
+    else round(coalesce(sum(a.allocated_amount), 0) / ce.amount_usd * 100.0, 2)
+  end as allocation_percent,
+  round(ce.amount_usd - coalesce(sum(a.allocated_amount), 0), 2) as unallocated_amount,
+  case
+    when coalesce(sum(a.allocated_amount), 0) = 0 then 'unallocated'
+    when coalesce(sum(a.allocated_amount), 0) < ce.amount_usd then 'under'
+    when coalesce(sum(a.allocated_amount), 0) = ce.amount_usd then 'balanced'
+    else 'over'
+  end as status
+from groupscholar_cost_allocator.cost_entries ce
+join groupscholar_cost_allocator.cost_centers cc on cc.id = ce.center_id
+left join groupscholar_cost_allocator.allocations a on a.cost_entry_id = ce.id
+group by ce.id, ce.incurred_on, cc.name, ce.vendor, ce.category, ce.amount_usd;
+
+create or replace view groupscholar_cost_allocator.v_center_allocation_variance as
+select
+  cc.name as cost_center,
+  date_trunc('month', ce.incurred_on) as month,
+  sum(ce.amount_usd) as total_spend,
+  coalesce(sum(a.allocated_amount), 0) as allocated_total,
+  round(sum(ce.amount_usd) - coalesce(sum(a.allocated_amount), 0), 2) as variance_amount
+from groupscholar_cost_allocator.cost_entries ce
+join groupscholar_cost_allocator.cost_centers cc on cc.id = ce.center_id
+left join groupscholar_cost_allocator.allocations a on a.cost_entry_id = ce.id
 group by cc.name, date_trunc('month', ce.incurred_on)
 order by month desc, cc.name;
 
@@ -134,5 +216,46 @@ begin
 
   get diagnostics inserted_count = row_count;
   return inserted_count;
+end;
+$$;
+
+create or replace function groupscholar_cost_allocator.recalculate_allocations_for_range(
+  p_start date,
+  p_end date
+) returns table (
+  deleted_count integer,
+  inserted_count integer
+)
+language plpgsql
+as $$
+begin
+  delete from groupscholar_cost_allocator.allocations a
+  using groupscholar_cost_allocator.cost_entries ce
+  where ce.id = a.cost_entry_id
+    and ce.incurred_on between p_start and p_end;
+
+  get diagnostics deleted_count = row_count;
+
+  insert into groupscholar_cost_allocator.allocations (
+    cost_entry_id,
+    cohort_id,
+    allocated_amount,
+    method
+  )
+  select
+    ce.id,
+    ar.cohort_id,
+    round(ce.amount_usd * ar.percent / 100.0, 2),
+    'rule'
+  from groupscholar_cost_allocator.cost_entries ce
+  join groupscholar_cost_allocator.allocation_rules ar
+    on ar.center_id = ce.center_id
+   and ce.incurred_on >= ar.effective_start
+   and (ar.effective_end is null or ce.incurred_on <= ar.effective_end)
+  where ce.incurred_on between p_start and p_end;
+
+  get diagnostics inserted_count = row_count;
+
+  return query select deleted_count, inserted_count;
 end;
 $$;

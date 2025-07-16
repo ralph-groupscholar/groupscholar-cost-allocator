@@ -5,7 +5,7 @@ Group Scholar Cost Allocator is a SQL-first cost allocation toolkit for mapping 
 ## Features
 - Dedicated schema with cost centers, cohorts, cost entries, allocation rules, and allocations.
 - Allocation function that applies percentage rules across a date range.
-- Reporting views for cohort monthly totals, cost center rollups, and unallocated items.
+- Reporting views for cohort monthly totals, cost center rollups, allocation gaps, rule coverage, and unallocated items.
 - Seed data for immediate reporting and demo usage.
 
 ## Tech
@@ -30,6 +30,8 @@ Group Scholar Cost Allocator is a SQL-first cost allocation toolkit for mapping 
 ## Reports
 - `groupscholar_cost_allocator.v_cohort_monthly`
 - `groupscholar_cost_allocator.v_center_monthly`
+- `groupscholar_cost_allocator.v_allocation_gaps`
+- `groupscholar_cost_allocator.v_rule_coverage`
 - `groupscholar_cost_allocator.v_unallocated_entries`
 
 ## Testing
