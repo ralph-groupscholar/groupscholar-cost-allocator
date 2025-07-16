@@ -148,6 +148,19 @@ join groupscholar_cost_allocator.cost_centers cc on cc.id = ce.center_id
 group by cc.name, date_trunc('month', ce.incurred_on)
 order by month desc, cc.name;
 
+create or replace view groupscholar_cost_allocator.v_cohort_category_monthly as
+select
+  pc.cohort_code,
+  pc.program_name,
+  ce.category,
+  date_trunc('month', ce.incurred_on) as month,
+  sum(a.allocated_amount) as allocated_total
+from groupscholar_cost_allocator.allocations a
+join groupscholar_cost_allocator.cost_entries ce on ce.id = a.cost_entry_id
+join groupscholar_cost_allocator.program_cohorts pc on pc.id = a.cohort_id
+group by pc.cohort_code, pc.program_name, ce.category, date_trunc('month', ce.incurred_on)
+order by month desc, pc.cohort_code, ce.category;
+
 create or replace view groupscholar_cost_allocator.v_entry_allocation_status as
 select
   ce.id as cost_entry_id,

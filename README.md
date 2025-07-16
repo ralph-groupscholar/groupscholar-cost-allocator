@@ -29,6 +29,7 @@ Group Scholar Cost Allocator is a SQL-first cost allocation toolkit for mapping 
 
 ## Reports
 - `groupscholar_cost_allocator.v_cohort_monthly`
+- `groupscholar_cost_allocator.v_cohort_category_monthly`
 - `groupscholar_cost_allocator.v_center_monthly`
 - `groupscholar_cost_allocator.v_allocation_gaps`
 - `groupscholar_cost_allocator.v_rule_coverage`

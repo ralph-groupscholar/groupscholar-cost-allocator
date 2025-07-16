@@ -12,6 +12,9 @@ psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c "select * from groupscholar_cost_al
 echo "\n== Cost center monthly spend =="
 psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c "select * from groupscholar_cost_allocator.v_center_monthly;"
 
+echo "\n== Cohort category monthly allocation =="
+psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c "select * from groupscholar_cost_allocator.v_cohort_category_monthly;"
+
 echo "\n== Allocation variance by cost center =="
 psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c "select * from groupscholar_cost_allocator.v_center_allocation_variance;"
 

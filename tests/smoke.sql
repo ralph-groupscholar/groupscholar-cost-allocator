@@ -7,3 +7,4 @@ select count(*) as allocation_gap_rows from groupscholar_cost_allocator.v_alloca
 select count(*) as rule_coverage_rows from groupscholar_cost_allocator.v_rule_coverage;
 select count(*) as entry_status_rows from groupscholar_cost_allocator.v_entry_allocation_status;
 select count(*) as variance_rows from groupscholar_cost_allocator.v_center_allocation_variance;
+select count(*) as cohort_category_rows from groupscholar_cost_allocator.v_cohort_category_monthly;
