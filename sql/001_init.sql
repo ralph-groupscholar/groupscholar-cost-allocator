@@ -148,6 +148,26 @@ join groupscholar_cost_allocator.cost_centers cc on cc.id = ce.center_id
 group by cc.name, date_trunc('month', ce.incurred_on)
 order by month desc, cc.name;
 
+create or replace view groupscholar_cost_allocator.v_center_allocation_balance as
+with entry_allocations as (
+  select
+    a.cost_entry_id,
+    sum(a.allocated_amount) as allocated_total
+  from groupscholar_cost_allocator.allocations a
+  group by a.cost_entry_id
+)
+select
+  cc.name as cost_center,
+  date_trunc('month', ce.incurred_on) as month,
+  sum(ce.amount_usd) as total_spend,
+  sum(coalesce(ea.allocated_total, 0)) as allocated_total,
+  round(sum(ce.amount_usd) - sum(coalesce(ea.allocated_total, 0)), 2) as allocation_gap
+from groupscholar_cost_allocator.cost_entries ce
+join groupscholar_cost_allocator.cost_centers cc on cc.id = ce.center_id
+left join entry_allocations ea on ea.cost_entry_id = ce.id
+group by cc.name, date_trunc('month', ce.incurred_on)
+order by month desc, cc.name;
+
 create or replace view groupscholar_cost_allocator.v_cohort_category_monthly as
 select
   pc.cohort_code,

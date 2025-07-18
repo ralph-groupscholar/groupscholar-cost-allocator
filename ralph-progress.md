@@ -6,7 +6,7 @@
 - Documented usage and added a smoke-test harness for non-production validation.
 
 ## Iteration 126 - 2026-02-08
-- Added allocation gap and rule coverage views to surface under/over allocation risks.
+- Added allocation gap, rule coverage, and cost center allocation balance views to surface under/over allocation risks.
 - Introduced a recalculation function for allocations over a date range and extended smoke tests.
 - Updated reporting script and README to cover the new auditing views.
 
